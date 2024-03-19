@@ -227,6 +227,22 @@ static void mctl_set_addrmap(const struct dram_config *config)
 	mctl_ctl->addrmap[8] = 0x3F3F;
 }
 
+
+
+#ifdef CONFIG_SUNXI_DRAM_H616_DDR3_LPDDR4_AUTO
+static const u8 phy_init_ddr3[] = {
+	0x07, 0x0b, 0x02, 0x16, 0x0d, 0x0e, 0x14, 0x19,
+	0x0a, 0x15, 0x03, 0x13, 0x04, 0x0c, 0x10, 0x06,
+	0x0f, 0x11, 0x1a, 0x01, 0x12, 0x17, 0x00, 0x08,
+	0x09, 0x05, 0x18
+};
+static const u8 phy_init_lpddr4[] = {
+	0x02, 0x00, 0x17, 0x05, 0x04, 0x19, 0x06, 0x07,
+	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x01,
+	0x18, 0x03, 0x1a
+};
+#else
 static const u8 phy_init[] = {
 #ifdef CONFIG_SUNXI_DRAM_H616_DDR3_1333
 	0x07, 0x0b, 0x02, 0x16, 0x0d, 0x0e, 0x14, 0x19,
@@ -245,9 +261,10 @@ static const u8 phy_init[] = {
 	0x18, 0x03, 0x1a
 #endif
 };
+#endif
 
 #define MASK_BYTE(reg, nr) (((reg) >> ((nr) * 8)) & 0x1f)
-static void mctl_phy_configure_odt(const struct dram_para *para)
+static void mctl_phy_configure_odt(struct dram_para *para)
 {
 	uint32_t val_lo, val_hi;
 
@@ -409,7 +426,7 @@ static bool mctl_phy_read_calibration(const struct dram_config *config)
 	return result;
 }
 
-static bool mctl_phy_read_training(const struct dram_para *para,
+static bool mctl_phy_read_training(struct dram_para *para,
 			   const struct dram_config *config)
 {
 	u32 val1, val2, *ptr1, *ptr2;
@@ -592,7 +609,7 @@ static bool mctl_phy_write_training(const struct dram_config *config)
 	return result;
 }
 
-static void mctl_phy_bit_delay_compensation(const struct dram_para *para)
+static void mctl_phy_bit_delay_compensation(struct dram_para *para)
 {
 	u32 *ptr, val;
 	int i;
@@ -795,7 +812,7 @@ static void mctl_phy_bit_delay_compensation(const struct dram_para *para)
 	}
 }
 
-static void mctl_phy_ca_bit_delay_compensation(const struct dram_para *para,
+static void mctl_phy_ca_bit_delay_compensation(struct dram_para *para,
 					       const struct dram_config *config)
 {
 	u32 val, *ptr;
@@ -873,7 +890,7 @@ static void mctl_phy_ca_bit_delay_compensation(const struct dram_para *para,
 	};
 }
 
-static bool mctl_phy_init(const struct dram_para *para,
+static bool mctl_phy_init(struct dram_para *para,
 			  const struct dram_config *config)
 {
 	struct sunxi_mctl_com_reg * const mctl_com =
@@ -936,9 +953,26 @@ static bool mctl_phy_init(const struct dram_para *para,
 	writel(val2, SUNXI_DRAM_PHY0_BASE + 0x37c);
 
 	ptr = (u32 *)(SUNXI_DRAM_PHY0_BASE + 0xc0);
+#ifdef CONFIG_SUNXI_DRAM_H616_DDR3_LPDDR4_AUTO
+	switch (para->type) {
+	case SUNXI_DRAM_TYPE_DDR3:
+		for (i = 0; i < ARRAY_SIZE(phy_init_ddr3); i++)
+			writel(phy_init_ddr3[i], &ptr[i]);
+		break;
+
+	case SUNXI_DRAM_TYPE_LPDDR4:
+		for (i = 0; i < ARRAY_SIZE(phy_init_lpddr4); i++)
+			writel(phy_init_lpddr4[i], &ptr[i]);
+
+		break;
+	default:
+		break;
+
+	};
+#else
 	for (i = 0; i < ARRAY_SIZE(phy_init); i++)
 		writel(phy_init[i], &ptr[i]);
-
+#endif
 	if (para->tpr10 & TPR10_CA_BIT_DELAY)
 		mctl_phy_ca_bit_delay_compensation(para, config);
 
@@ -951,6 +985,8 @@ static bool mctl_phy_init(const struct dram_para *para,
 		break;
 	case SUNXI_DRAM_TYPE_LPDDR4:
 		val = para->tpr6 >> 24 & 0xff;
+		if (val == 0)
+			val = 0x33;
 		break;
 	case SUNXI_DRAM_TYPE_DDR4:
 	default:
@@ -1155,7 +1191,7 @@ static bool mctl_phy_init(const struct dram_para *para,
 	return true;
 }
 
-static bool mctl_ctrl_init(const struct dram_para *para,
+static bool mctl_ctrl_init(struct dram_para *para,
 			   const struct dram_config *config)
 {
 	struct sunxi_mctl_com_reg * const mctl_com =
@@ -1270,7 +1306,7 @@ static bool mctl_ctrl_init(const struct dram_para *para,
 	return true;
 }
 
-static bool mctl_core_init(const struct dram_para *para,
+static bool mctl_core_init(struct dram_para *para,
 			   const struct dram_config *config)
 {
 	mctl_sys_init(para->clk);
@@ -1278,7 +1314,7 @@ static bool mctl_core_init(const struct dram_para *para,
 	return mctl_ctrl_init(para, config);
 }
 
-static void mctl_auto_detect_rank_width(const struct dram_para *para,
+static void mctl_auto_detect_rank_width(struct dram_para *para,
 					struct dram_config *config)
 {
 	/* this is minimum size that it's supported */
@@ -1320,7 +1356,7 @@ static void mctl_auto_detect_rank_width(const struct dram_para *para,
 	panic("This DRAM setup is currently not supported.\n");
 }
 
-static void mctl_auto_detect_dram_size(const struct dram_para *para,
+static void mctl_auto_detect_dram_size(struct dram_para *para,
 				       struct dram_config *config)
 {
 	/* detect row address bits */
@@ -1355,7 +1391,7 @@ static unsigned long mctl_calc_size(const struct dram_config *config)
 	return (1ULL << (config->cols + config->rows + 3)) * width * config->ranks;
 }
 
-static const struct dram_para para = {
+static struct dram_para para = {
 	.clk = CONFIG_DRAM_CLK,
 #ifdef CONFIG_SUNXI_DRAM_H616_DDR3_1333
 	.type = SUNXI_DRAM_TYPE_DDR3,
@@ -1385,6 +1421,19 @@ unsigned long sunxi_dram_init(void)
 
 	setbits_le32(&prcm->res_cal_ctrl, BIT(8));
 	clrbits_le32(&prcm->ohms240, 0x3f);
+
+	if (IS_ENABLED(CONFIG_SUNXI_DRAM_H616_DDR3_LPDDR4_AUTO))
+	{
+		config.cols = 8;
+		config.rows = 13;
+		para.type = SUNXI_DRAM_TYPE_DDR3;
+		para.tpr10 = 0xf83438 ;
+		if( ! mctl_core_init(&para, &config))
+		{
+			para.type = SUNXI_DRAM_TYPE_LPDDR4;
+			para.tpr10 = 0x402f0663 ;
+		}
+	}
 
 	mctl_auto_detect_rank_width(&para, &config);
 	mctl_auto_detect_dram_size(&para, &config);
