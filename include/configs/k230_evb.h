@@ -27,6 +27,11 @@
 
 #include <linux/sizes.h>
 
+#define BOOT_TARGET_DEVICES(func) \
+	func(MMC, mmc, 0) \
+	func(MMC, mmc, 1) 
+#include <config_distro_bootcmd.h>
+
 #define CONFIG_SYS_INIT_RAM_ADDR 0x80300000
 #define CONFIG_SYS_INIT_RAM_SIZE 0x100000
 
@@ -38,12 +43,13 @@
 #if CONFIG_CMD_DFU
 #define DEFAULT_BOOTCMD_ENV "bootcmd=k230_dfu; \0"
 #else
-#define DEFAULT_BOOTCMD_ENV "bootcmd=k230_boot auto auto_boot; \0"
+#define DEFAULT_BOOTCMD_ENV BOOTENV
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"dtb_addr=0xa000000 \0" \
 	"fdt_high=0xa100000\0" \
+	"scriptaddr=0xa200000\0" \
 	"kernel_addr=0xc100000\0" \
 	"ramdisk_addr=0xa100000\0" \
 	"ipaddr=10.99.105.44\0" \
