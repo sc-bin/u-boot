@@ -83,8 +83,8 @@
 		(IO10) ( 0<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 0<<ST )
 		
 		// I2C2
-		(IO11) ( 3<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 0<<ST )
-		(IO12) ( 3<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 0<<PU | 0<<PD | 8<<DS | 0<<ST )
+		(IO11) ( 3<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 8<<DS | 0<<ST )
+		(IO12) ( 3<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 1<<IE | 1<<OE | 1<<PU | 0<<PD | 8<<DS | 0<<ST )
 
 		(IO13) ( 1<<SEL | 0<<SL | BANK_VOLTAGE_IO2_IO13 <<MSC | 0<<IE | 1<<OE | 0<<PU | 1<<PD | 4<<DS | 1<<ST )
 
