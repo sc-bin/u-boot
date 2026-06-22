@@ -618,7 +618,7 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 	ulong image_start = os.image_start;
 	ulong image_len = os.image_len;
 	ulong decomp_len = CONFIG_SYS_BOOTM_LEN;
-	ulong flush_start = ALIGN_DOWN(load, ARCH_DMA_MINALIGN);
+	ulong flush_start;
 	bool no_overlap;
 	void *load_buf, *image_buf;
 	int err;
@@ -663,6 +663,7 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 	/* We need the decompressed image size in the next steps */
 	images->os.image_len = load_end - load;
 
+	flush_start = ALIGN_DOWN(load, ARCH_DMA_MINALIGN);
 	flush_cache(flush_start, ALIGN(load_end, ARCH_DMA_MINALIGN) - flush_start);
 
 	debug("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, load_end);
