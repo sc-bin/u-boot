@@ -375,11 +375,17 @@ static int bootm_find_os(const char *cmd_name, const char *addr_fit)
 		images.os.end = fit_get_end(images.fit_hdr_os);
 
 		if (fit_image_get_load(images.fit_hdr_os, images.fit_noffset_os,
-				       &images.os.load)) {
+				       &images.os.load) &&
+		    images.os.type != IH_TYPE_KERNEL_NOLOAD) {
 			puts("Can't get image load address!\n");
 			bootstage_error(BOOTSTAGE_ID_FIT_LOADADDR);
 			return 1;
 		}
+		if (images.os.load && images.os.type == IH_TYPE_KERNEL_NOLOAD) {
+			puts("WARNING: load address set for kernel_noload image, ignoring\n");
+			images.os.load = 0;
+		}
+
 		break;
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
@@ -427,7 +433,7 @@ static int bootm_find_os(const char *cmd_name, const char *addr_fit)
 
 		ret = fit_image_get_entry(images.fit_hdr_os,
 					  images.fit_noffset_os, &images.ep);
-		if (ret) {
+		if (ret && images.os.type != IH_TYPE_KERNEL_NOLOAD) {
 			puts("Can't get entry point property!\n");
 			return 1;
 		}
@@ -622,7 +628,7 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 	ulong image_start = os.image_start;
 	ulong image_len = os.image_len;
 	ulong decomp_len = CONFIG_SYS_BOOTM_LEN;
-	ulong flush_start = ALIGN_DOWN(load, ARCH_DMA_MINALIGN);
+	ulong flush_start;
 	bool no_overlap;
 	void *load_buf, *image_buf;
 	int err;
@@ -667,6 +673,7 @@ static int bootm_load_os(struct bootm_headers *images, int boot_progress)
 	/* We need the decompressed image size in the next steps */
 	images->os.image_len = load_end - load;
 
+	flush_start = ALIGN_DOWN(load, ARCH_DMA_MINALIGN);
 	flush_cache(flush_start, ALIGN(load_end, ARCH_DMA_MINALIGN) - flush_start);
 
 	debug("   kernel loaded at 0x%08lx, end = 0x%08lx\n", load, load_end);
